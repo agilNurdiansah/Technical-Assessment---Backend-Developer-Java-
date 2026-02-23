@@ -2,6 +2,19 @@
 
 Mini project microservices dengan Spring Boot, Postgres, dan Docker Compose. Terdiri dari User Service dan Order Service, lengkap dengan CRUD dan laporan (native SQL).
 
+## Quick Start (From Clone)
+```bash
+git clone <URL_REPO>
+cd technical-assessment
+docker compose -f infra/docker/docker-compose.yml up -d --build
+docker ps
+```
+
+Service akan aktif di:
+- User Service: `http://localhost:8081`
+- Order Service: `http://localhost:8082`
+- Postgres: `localhost:5433`
+
 ## Prasyarat
 - Docker Desktop
 - Git
