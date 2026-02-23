@@ -1,0 +1,214 @@
+openapi: 3.0.3
+info:
+  title: User Service API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8081
+paths:
+  /api/v1/users:
+    get:
+      summary: List users
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 0
+          default: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          default: 10
+      responses:
+        '200':
+          description: Page of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseUser'
+    post:
+      summary: Create user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUser'
+  /api/v1/users/{id}:
+    get:
+      summary: Get user by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUser'
+    put:
+      summary: Update user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUser'
+    delete:
+      summary: Delete user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseVoid'
+  /api/v1/users/reports/active:
+    get:
+      summary: Report active users
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserReport'
+components:
+  schemas:
+    CreateUserRequest:
+      type: object
+      required: [name, email, status]
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        email:
+          type: string
+          format: email
+          maxLength: 160
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE]
+    UpdateUserRequest:
+      type: object
+      required: [name, status]
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE]
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    UserReportRow:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        status:
+          type: string
+    ApiResponseUser:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/UserResponse'
+        timestamp:
+          type: string
+    ApiResponseVoid:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          nullable: true
+        timestamp:
+          type: string
+    ApiResponseUserReport:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserReportRow'
+        timestamp:
+          type: string
+    PageResponseUser:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        timestamp:
+          type: string

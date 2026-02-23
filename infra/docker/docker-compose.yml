@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: tech-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  user-service:
+    build:
+      context: ../..
+      dockerfile: services/user-service/Dockerfile
+    environment:
+      USER_DB_URL: jdbc:postgresql://postgres:5432/userdb
+      USER_DB_USER: postgres
+      USER_DB_PASSWORD: postgres
+      USER_SERVICE_PORT: 8081
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+
+  order-service:
+    build:
+      context: ../..
+      dockerfile: services/order-service/Dockerfile
+    environment:
+      ORDER_DB_URL: jdbc:postgresql://postgres:5432/orderdb
+      ORDER_DB_USER: postgres
+      ORDER_DB_PASSWORD: postgres
+      ORDER_SERVICE_PORT: 8082
+    ports:
+      - "8082:8082"
+    depends_on:
+      - postgres

@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS orders (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    total_amount NUMERIC(12,2) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS order_items (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    product_name VARCHAR(120) NOT NULL,
+    quantity INT NOT NULL,
+    price NUMERIC(12,2) NOT NULL
+);

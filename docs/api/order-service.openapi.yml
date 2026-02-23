@@ -1,0 +1,265 @@
+openapi: 3.0.3
+info:
+  title: Order Service API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8082
+paths:
+  /api/v1/orders:
+    get:
+      summary: List orders
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 0
+          default: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          default: 10
+      responses:
+        '200':
+          description: Page of orders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResponseOrder'
+    post:
+      summary: Create order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOrder'
+  /api/v1/orders/{id}:
+    get:
+      summary: Get order by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOrder'
+    delete:
+      summary: Delete order
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseVoid'
+  /api/v1/orders/{id}/status:
+    put:
+      summary: Update order status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrderStatusRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOrder'
+  /api/v1/orders/user/{userId}:
+    get:
+      summary: List orders by user
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOrderList'
+  /api/v1/orders/reports/by-user:
+    get:
+      summary: Order summary by user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseOrderReport'
+components:
+  schemas:
+    CreateOrderRequest:
+      type: object
+      required: [userId, items]
+      properties:
+        userId:
+          type: integer
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CreateOrderItemRequest'
+    CreateOrderItemRequest:
+      type: object
+      required: [productName, quantity, price]
+      properties:
+        productName:
+          type: string
+          maxLength: 120
+        quantity:
+          type: integer
+          minimum: 1
+        price:
+          type: number
+          format: double
+          minimum: 0.01
+    UpdateOrderStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [NEW, PAID, SHIPPED, CANCELLED]
+    OrderItemResponse:
+      type: object
+      properties:
+        productName:
+          type: string
+        quantity:
+          type: integer
+        price:
+          type: number
+        subtotal:
+          type: number
+    OrderResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        status:
+          type: string
+        totalAmount:
+          type: number
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItemResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    OrderReportRow:
+      type: object
+      properties:
+        userId:
+          type: integer
+        orderCount:
+          type: integer
+        totalAmount:
+          type: number
+    ApiResponseOrder:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/OrderResponse'
+        timestamp:
+          type: string
+    ApiResponseVoid:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          nullable: true
+        timestamp:
+          type: string
+    ApiResponseOrderList:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderResponse'
+        timestamp:
+          type: string
+    ApiResponseOrderReport:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderReportRow'
+        timestamp:
+          type: string
+    PageResponseOrder:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        timestamp:
+          type: string
