@@ -5,14 +5,14 @@ services:
     image: postgres:16
     container_name: tech-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,12 +23,12 @@ services:
       dockerfile: services/user-service/Dockerfile
     container_name: tech-user-service
     environment:
-      USER_DB_URL: jdbc:postgresql://postgres:5432/userdb
-      USER_DB_USER: postgres
-      USER_DB_PASSWORD: postgres
-      USER_SERVICE_PORT: 8081
+      USER_DB_URL: ${USER_DB_URL:-jdbc:postgresql://postgres:5432/userdb}
+      USER_DB_USER: ${USER_DB_USER:-postgres}
+      USER_DB_PASSWORD: ${USER_DB_PASSWORD:-postgres}
+      USER_SERVICE_PORT: ${USER_SERVICE_PORT:-8081}
     ports:
-      - "8081:8081"
+      - "${USER_SERVICE_PORT:-8081}:${USER_SERVICE_PORT:-8081}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -39,13 +39,13 @@ services:
       dockerfile: services/order-service/Dockerfile
     container_name: tech-order-service
     environment:
-      ORDER_DB_URL: jdbc:postgresql://postgres:5432/orderdb
-      ORDER_DB_USER: postgres
-      ORDER_DB_PASSWORD: postgres
-      ORDER_SERVICE_PORT: 8082
-      USER_SERVICE_URL: http://user-service:8081
+      ORDER_DB_URL: ${ORDER_DB_URL:-jdbc:postgresql://postgres:5432/orderdb}
+      ORDER_DB_USER: ${ORDER_DB_USER:-postgres}
+      ORDER_DB_PASSWORD: ${ORDER_DB_PASSWORD:-postgres}
+      ORDER_SERVICE_PORT: ${ORDER_SERVICE_PORT:-8082}
+      USER_SERVICE_URL: ${USER_SERVICE_URL:-http://user-service:8081}
     ports:
-      - "8082:8082"
+      - "${ORDER_SERVICE_PORT:-8082}:${ORDER_SERVICE_PORT:-8082}"
     depends_on:
       postgres:
         condition: service_healthy

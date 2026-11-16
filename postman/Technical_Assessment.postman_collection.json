@@ -1,0 +1,531 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		"name": "Technical Assessment - Microservices (Middle Level)",
+		"description": "Collection pengujian lengkap untuk User Service dan Order Service (Spring Boot 4, Java 17, PostgreSQL). Mencakup pengujian CRUD, Spring IoC Strategy Pattern, Java Stream API Analytics, dan Intermediate Native SQL Queries (CTE, Window Functions, JOIN + HAVING).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. User Service (Port 8081)",
+			"item": [
+				{
+					"name": "Get Active Users (Report)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl_user}}/api/v1/users/reports/active",
+							"host": [
+								"{{baseUrl_user}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"reports",
+								"active"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users (Paginated)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl_user}}/api/v1/users?page=0&size=10",
+							"host": [
+								"{{baseUrl_user}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID (ID = 1)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl_user}}/api/v1/users/1",
+							"host": [
+								"{{baseUrl_user}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create New User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john.doe@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl_user}}/api/v1/users",
+							"host": [
+								"{{baseUrl_user}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Status",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe Updated\",\n    \"status\": \"ACTIVE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl_user}}/api/v1/users/1",
+							"host": [
+								"{{baseUrl_user}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Order Service - Middle Level Core Features",
+			"item": [
+				{
+					"name": "[IoC Strategy] Create Order - PERCENTAGE_TEN (10% Discount)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userId\": 1,\n    \"discountType\": \"PERCENTAGE_TEN\",\n    \"items\": [\n        {\n            \"productName\": \"Mechanical Keyboard RGB\",\n            \"quantity\": 1,\n            \"price\": 100.00\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders"
+							]
+						},
+						"description": "Menunjukkan Spring IoC Strategy Pattern. Memvalidasi userId 1 ke user-service, memilih PercentageDiscountStrategy (diskon 10% = $10.00, total $90.00), dan menerbitkan OrderCreatedEvent."
+					},
+					"response": []
+				},
+				{
+					"name": "[IoC Strategy] Create Order - BULK_PURCHASE (Quantity >= 3)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userId\": 1,\n    \"discountType\": \"BULK_PURCHASE\",\n    \"items\": [\n        {\n            \"productName\": \"Desk Mat Premium\",\n            \"quantity\": 3,\n            \"price\": 20.00\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders"
+							]
+						},
+						"description": "Menguji BulkPurchaseDiscountStrategy. Total quantity = 3 (memenuhi syarat >= 3 item), diskon 15% diterapkan."
+					},
+					"response": []
+				},
+				{
+					"name": "[IoC Strategy] Create Order - VIP_TIER (20% Discount)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userId\": 2,\n    \"discountType\": \"VIP_TIER\",\n    \"items\": [\n        {\n            \"productName\": \"4K Monitor Ultra-wide\",\n            \"quantity\": 1,\n            \"price\": 300.00\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders"
+							]
+						},
+						"description": "Menguji VipUserDiscountStrategy. Menghitung diskon 20% ($60.00) dari subtotal $300.00."
+					},
+					"response": []
+				},
+				{
+					"name": "[IoC Strategy Fallback] Create Order - NONE (No Discount)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userId\": 1,\n    \"discountType\": \"NONE\",\n    \"items\": [\n        {\n            \"productName\": \"Wireless Mouse\",\n            \"quantity\": 2,\n            \"price\": 25.00\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[Microservices Validation] Create Order - User Not Found (Expect 400)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userId\": 9999,\n    \"discountType\": \"NONE\",\n    \"items\": [\n        {\n            \"productName\": \"USB Cable\",\n            \"quantity\": 1,\n            \"price\": 10.00\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders"
+							]
+						},
+						"description": "Menguji validasi inter-service: order-service memanggil user-service untuk userId 9999. User tidak ditemukan, server merespons 400 Bad Request."
+					},
+					"response": []
+				},
+				{
+					"name": "[Java Stream API] Order Analytics Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders/analytics/summary",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"analytics",
+								"summary"
+							]
+						},
+						"description": "Menampilkan analitik menggunakan operasi Java Stream API: groupingBy (status & revenue), partitioningBy (high-value >= $50 vs standard), summarizingDouble (stats), reduce (total volume), dan flatMap (product leaderboard)."
+					},
+					"response": []
+				},
+				{
+					"name": "[Native SQL CTE + DENSE_RANK] User Spending Rankings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders/reports/user-rankings",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"reports",
+								"user-rankings"
+							]
+						},
+						"description": "Menjalankan intermediate native SQL query dengan Common Table Expression (WITH UserOrderStats AS (...)) dan Window Function DENSE_RANK() OVER (ORDER BY total_spent DESC)."
+					},
+					"response": []
+				},
+				{
+					"name": "[Native SQL Window Functions] Cumulative Spent Progression",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders/reports/cumulative-spent",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"reports",
+								"cumulative-spent"
+							]
+						},
+						"description": "Menjalankan intermediate native SQL query dengan Window Functions ROW_NUMBER() OVER (PARTITION BY user_id) dan running total SUM() OVER (PARTITION BY user_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)."
+					},
+					"response": []
+				},
+				{
+					"name": "[Native SQL JOIN + HAVING] Product Sales Performance",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders/reports/product-performance?minQuantity=1",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"reports",
+								"product-performance"
+							],
+							"query": [
+								{
+									"key": "minQuantity",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Menjalankan intermediate native SQL query dengan Multi-table INNER JOIN antara orders dan order_items, agregasi volume penjualan, dan HAVING clause filter."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Order Service - Standard CRUD & Junior Report",
+			"item": [
+				{
+					"name": "Get All Orders (Paginated)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders?page=0&size=10",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order by ID (ID = 1)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders/1",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Orders by User ID (User ID = 1)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders/user/1",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"user",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Order Status (ID = 1 to PAID)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"PAID\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders/1/status",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"1",
+								"status"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Order (ID = 1)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders/1",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[Junior Report] Simple Order Summary by User",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl_order}}/api/v1/orders/reports/by-user",
+							"host": [
+								"{{baseUrl_order}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"reports",
+								"by-user"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
