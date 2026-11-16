@@ -27,6 +27,11 @@ public class OrderRepositoryAdapter implements OrderRepository {
     }
 
     @Override
+    public List<Order> findAll() {
+        return orderJpaRepository.findAll();
+    }
+
+    @Override
     public Page<Order> findAll(Pageable pageable) {
         return orderJpaRepository.findAll(pageable);
     }

@@ -19,6 +19,8 @@ public final class OrderMapper {
         Order order = new Order();
         order.setUserId(request.getUserId());
         order.setStatus(OrderStatus.NEW);
+        order.setDiscountType(request.getDiscountType() != null ? request.getDiscountType() : com.company.orderservice.domain.DiscountType.NONE);
+        order.setDiscountAmount(BigDecimal.ZERO);
         order.setTotalAmount(BigDecimal.ZERO);
         return order;
     }
@@ -37,6 +39,8 @@ public final class OrderMapper {
         response.setUserId(order.getUserId());
         response.setStatus(order.getStatus());
         response.setTotalAmount(order.getTotalAmount());
+        response.setDiscountType(order.getDiscountType());
+        response.setDiscountAmount(order.getDiscountAmount());
         response.setCreatedAt(order.getCreatedAt());
         response.setUpdatedAt(order.getUpdatedAt());
 

@@ -1,389 +1,212 @@
-# Technical Assessment (Java)
+# Technical Assessment - Backend Developer (Java)
 
-Mini project microservices dengan Spring Boot, Postgres, dan Docker Compose. Terdiri dari User Service dan Order Service, lengkap dengan CRUD dan laporan (native SQL).
+Mini project microservices berbasis **Spring Boot 4 / Java 17**, **PostgreSQL**, dan **Docker Compose** yang dirancang dengan **Clean Architecture (Hexagonal / Ports and Adapters)** dan mengimplementasikan seluruh spesifikasi untuk **Level Middle**:
 
-## Quick Start (From Clone)
+1. **Spring IoC (Inversion of Control & Dependency Injection)**
+2. **Java Stream API (Advanced Transformations, Grouping, Partitioning, Summary, Reduction)**
+3. **Intermediate Native SQL Query (CTE, Window Functions, Multi-table JOINs, HAVING)**
+4. **Containerization & Microservices (Inter-service REST Communication, Docker Compose Orchestration)**
+
+---
+
+## 🏛️ Arsitektur Sistem
+
+```
+                         ┌───────────────────────┐
+                         │    PostgreSQL 16      │
+                         │ (userdb & orderdb)    │
+                         └───────────┬───────────┘
+                                     │
+           ┌─────────────────────────┴────────────────────────┐
+           ▼                                                  ▼
+┌──────────────────────┐   REST HTTP (Spring RestClient)    ┌──────────────────────┐
+│     User Service     │ ◄───────────────────────────────── │    Order Service     │
+│      Port: 8081      │       (User Existence & Status)    │      Port: 8082      │
+└──────────────────────┘                                    └──────────────────────┘
+   Clean Architecture                                          Clean Architecture
+   - Presentation                                              - Presentation
+   - Application                                               - Application (IoC Strategy, Stream Analytics)
+   - Domain                                                    - Domain (Events, Entities)
+   - Infrastructure                                            - Infrastructure (Intermediate Native SQL)
+```
+
+---
+
+## 🎯 Pemenuhan Kriteria Level Middle
+
+### 1. Spring IoC (Inversion of Control)
+- **Dynamic Strategy Pattern via Spring IoC**:
+  - Interface `DiscountStrategy` memiliki implementasi:
+    - `NoDiscountStrategy` (default/fallback)
+    - `PercentageDiscountStrategy` (diskon 10%)
+    - `BulkPurchaseDiscountStrategy` (diskon volume untuk pesanan >= 3 item)
+    - `VipUserDiscountStrategy` (diskon 20% untuk tier VIP)
+  - `DiscountStrategyFactory` secara otomatis meng-inject seluruh bean `DiscountStrategy` melalui Spring IoC Container (`List<DiscountStrategy>`) tanpa hardcoding.
+- **Event-Driven Decoupling via Spring IoC**:
+  - `ApplicationEventPublisher` mempublikasikan `OrderCreatedEvent`.
+  - `@EventListener` di `OrderAuditEventListener` dan `OrderNotificationEventListener` menangkap event secara terdesentralisasi di dalam container Spring.
+- **Custom Bean Configuration**:
+  - `AppConfig` mengonfigurasi bean `RestClient` dengan connection timeout dan read timeout untuk komunikasi antar service.
+
+### 2. Java Stream API
+- `OrderAnalyticsServiceImpl` mengimplementasikan operasi Stream Java secara komprehensif:
+  - **`groupingBy`**: Mengelompokkan transaksi berdasarkan `OrderStatus` (menghitung frekuensi & akumulasi pendapatan per status).
+  - **`partitioningBy`**: Memisahkan pesanan bernilai tinggi (*High-Value Orders* >= $50) dengan pesanan reguler.
+  - **`summarizingDouble`**: Menghasilkan metrik statistik distribusi nilai transaksi (*count, sum, min, average, max*).
+  - **`reduce`**: Menghitung total revenue finansial secara fungsional (`BigDecimal::add`).
+  - **`flatMap`**: Melakukan flatten list item transaksi untuk membuat papan peringkat produk terlaris (*product sales leaderboard*).
+- Endpoint: `GET /api/v1/orders/analytics/summary`
+
+### 3. Intermediate Native SQL Query
+Disediakan query SQL Native intermediate pada `OrderReportJdbcRepository`:
+1. **CTE (Common Table Expression) + Window Function (`DENSE_RANK`)**:
+   - Menghitung ranking total belanja customer secara kompetitif.
+   - Endpoint: `GET /api/v1/orders/reports/user-rankings`
+2. **Window Functions (`ROW_NUMBER` & `SUM() OVER (...)` Running Total)**:
+   - Menghitung urutan transaksi per user dan akumulasi belanja berjalan (*cumulative running total*).
+   - Endpoint: `GET /api/v1/orders/reports/cumulative-spent`
+3. **Multi-table JOIN dengan Aggregations dan `HAVING`**:
+   - Menggabungkan tabel `order_items` dan `orders` dengan filter kuantitas minimum agregat.
+   - Endpoint: `GET /api/v1/orders/reports/product-performance?minQuantity=1`
+
+### 4. Containerization & Microservices
+- Terdiri dari 2 microservice terpisah:
+  - `user-service` (Port 8081)
+  - `order-service` (Port 8082)
+- **Komunikasi Antar Microservice**:
+  - `order-service` memanggil `user-service` via HTTP REST (`UserRestClientAdapter`) saat pembuatan pesanan untuk memvalidasi keberadaan dan status aktif user.
+- **Docker Compose**:
+  - Multi-stage build Dockerfile untuk image yang ringan dan aman.
+  - Healthcheck pada PostgreSQL (`pg_isready`).
+  - Dependensi startup terorkestrasi (`order-service` menunggu `postgres` healthy dan `user-service` running).
+
+---
+
+## 🚀 Quick Start (Docker Compose)
+
+### 1. Menjalankan Seluruh Service
 ```bash
-git clone <URL_REPO>
-cd technical-assessment
 docker compose -f infra/docker/docker-compose.yml up -d --build
+```
+
+### 2. Cek Status Container
+```bash
 docker ps
 ```
 
-Service akan aktif di:
-- User Service: `http://localhost:8081`
-- Order Service: `http://localhost:8082`
-- Postgres: `localhost:5433`
+Port yang tersedia:
+- **User Service**: `http://localhost:8081`
+- **Order Service**: `http://localhost:8082`
+- **PostgreSQL**: `localhost:5433`
 
-## Prasyarat
-- Docker Desktop
-- Git
-- curl (untuk testing API)
+---
 
-Opsional (jika ingin build lokal tanpa Docker build):
-- Java 17
-- Maven 3.9+
+## 🧪 Testing API & Fitur Middle Level
 
-Tidak perlu install Java/Maven jika menjalankan via Docker saja.
-
-## Struktur Project
-- `shared/common`: response envelope + global exception handler
-- `services/user-service`: clean architecture (presentation, application, domain, infrastructure)
-- `services/order-service`: clean architecture (presentation, application, domain, infrastructure)
-- `infra/docker`: docker-compose + init database
-- `docs/api`: OpenAPI specs
-
-## Cara Menjalankan (Docker - disarankan)
-1) Jalankan container
+### 1. Test Komunikasi Microservices & Spring IoC Strategy
+Buat pesanan baru dengan strategi diskon `PERCENTAGE_TEN`:
 ```bash
-docker compose -f infra/docker/docker-compose.yml up -d --build
-```
-
-2) Cek container berjalan
-```bash
-docker ps
-```
-
-Service akan aktif di:
-- User Service: `http://localhost:8081`
-- Order Service: `http://localhost:8082`
-- Postgres: `localhost:5433`
-
-## Seeder (Data Awal)
-Seeder otomatis berjalan saat service start, hanya jika tabel masih kosong.
-
-Seed data saat ini:
-- users: 2
-- orders: 2
-- order_items: 4
-
-## Environment Variables
-User Service:
-- `USER_DB_URL` (default `jdbc:postgresql://postgres:5432/userdb`)
-- `USER_DB_USER` (default `postgres`)
-- `USER_DB_PASSWORD` (default `postgres`)
-- `USER_SERVICE_PORT` (default `8081`)
-
-Order Service:
-- `ORDER_DB_URL` (default `jdbc:postgresql://postgres:5432/orderdb`)
-- `ORDER_DB_USER` (default `postgres`)
-- `ORDER_DB_PASSWORD` (default `postgres`)
-- `ORDER_SERVICE_PORT` (default `8082`)
-
-## Nilai Enum
-User Status: `ACTIVE`, `INACTIVE`
-Order Status: `NEW`, `PAID`, `SHIPPED`, `CANCELLED`
-
-## Format Response
-Success (ApiResponse):
-```json
-{
-  "success": true,
-  "message": "OK",
-  "data": {},
-  "timestamp": "2026-02-22T15:00:00Z"
-}
-```
-
-List (PageResponse):
-```json
-{
-  "items": [],
-  "page": 0,
-  "size": 10,
-  "totalElements": 0,
-  "totalPages": 0,
-  "timestamp": "2026-02-22T15:00:00Z"
-}
-```
-
-Error (ErrorResponse):
-```json
-{
-  "code": "BAD_REQUEST",
-  "message": "Email already registered",
-  "path": "/api/v1/users",
-  "details": null,
-  "timestamp": "2026-02-22T15:00:00Z"
-}
-```
-
-## User Service API
-Base URL: `http://localhost:8081/api/v1/users`
-
-### Create User
-Request:
-```bash
-curl -i -X POST "http://localhost:8081/api/v1/users" \
+curl -X POST http://localhost:8082/api/v1/orders \
   -H "Content-Type: application/json" \
-  -d '{"name":"Alice","email":"alice@example.com","status":"ACTIVE"}'
-```
-
-Response (201):
-```json
-{
-  "success": true,
-  "message": "User created",
-  "data": {
-    "id": 1,
-    "name": "Alice",
-    "email": "alice@example.com",
-    "status": "ACTIVE",
-    "createdAt": "2026-02-22T15:00:00Z",
-    "updatedAt": "2026-02-22T15:00:00Z"
-  },
-  "timestamp": "2026-02-22T15:00:00Z"
-}
-```
-
-### Get User by ID
-Request:
-```bash
-curl -i "http://localhost:8081/api/v1/users/1"
-```
-
-Response (200):
-```json
-{
-  "success": true,
-  "message": "OK",
-  "data": {
-    "id": 1,
-    "name": "Alice",
-    "email": "alice@example.com",
-    "status": "ACTIVE",
-    "createdAt": "2026-02-22T15:00:00Z",
-    "updatedAt": "2026-02-22T15:00:00Z"
-  },
-  "timestamp": "2026-02-22T15:00:00Z"
-}
-```
-
-### List Users (Pagination)
-Request:
-```bash
-curl -i "http://localhost:8081/api/v1/users?page=0&size=10"
-```
-
-Response (200):
-```json
-{
-  "items": [
-    {
-      "id": 1,
-      "name": "Alice",
-      "email": "alice@example.com",
-      "status": "ACTIVE",
-      "createdAt": "2026-02-22T15:00:00Z",
-      "updatedAt": "2026-02-22T15:00:00Z"
-    }
-  ],
-  "page": 0,
-  "size": 10,
-  "totalElements": 1,
-  "totalPages": 1,
-  "timestamp": "2026-02-22T15:00:00Z"
-}
-```
-
-### Update User
-Request:
-```bash
-curl -i -X PUT "http://localhost:8081/api/v1/users/1" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Alice Updated","email":"alice@example.com","status":"INACTIVE"}'
-```
-
-Response (200):
-```json
-{
-  "success": true,
-  "message": "User updated",
-  "data": {
-    "id": 1,
-    "name": "Alice Updated",
-    "email": "alice@example.com",
-    "status": "INACTIVE",
-    "createdAt": "2026-02-22T15:00:00Z",
-    "updatedAt": "2026-02-22T15:00:00Z"
-  },
-  "timestamp": "2026-02-22T15:00:00Z"
-}
-```
-
-### Delete User
-Request:
-```bash
-curl -i -X DELETE "http://localhost:8081/api/v1/users/1"
-```
-
-Response (200):
-```json
-{
-  "success": true,
-  "message": "User deleted",
-  "data": null,
-  "timestamp": "2026-02-22T15:00:00Z"
-}
-```
-
-### Report: Active Users (Native SQL)
-Request:
-```bash
-curl -i "http://localhost:8081/api/v1/users/reports/active"
-```
-
-Response (200):
-```json
-{
-  "success": true,
-  "message": "Active users",
-  "data": [
-    {
-      "id": 1,
-      "name": "Alice",
-      "email": "alice@example.com",
-      "status": "ACTIVE"
-    }
-  ],
-  "timestamp": "2026-02-22T15:00:00Z"
-}
-```
-
-## Order Service API
-Base URL: `http://localhost:8082/api/v1/orders`
-
-### Create Order
-Request:
-```bash
-curl -i -X POST "http://localhost:8082/api/v1/orders" \
-  -H "Content-Type: application/json" \
-  -d '{"userId":1,"status":"NEW","items":[{"productName":"Keyboard","quantity":1,"price":49.99},{"productName":"Mouse","quantity":2,"price":19.99}]}'
-```
-
-Response (201):
-```json
-{
-  "success": true,
-  "message": "Order created",
-  "data": {
-    "id": 1,
+  -d '{
     "userId": 1,
-    "status": "NEW",
-    "totalAmount": 89.97,
+    "discountType": "PERCENTAGE_TEN",
     "items": [
-      {"productName":"Keyboard","quantity":1,"price":49.99,"subtotal":49.99},
-      {"productName":"Mouse","quantity":2,"price":19.99,"subtotal":39.98}
-    ],
-    "createdAt": "2026-02-22T15:00:00Z",
-    "updatedAt": "2026-02-22T15:00:00Z"
-  },
-  "timestamp": "2026-02-22T15:00:00Z"
-}
+      {
+        "productName": "Ergonomic Mechanical Keyboard",
+        "quantity": 1,
+        "price": 100.00
+      }
+    ]
+  }'
 ```
+*Hasil:* `order-service` memvalidasi user id 1 ke `user-service`. Jika aktif, Spring IoC memanggil `PercentageDiscountStrategy` (diskon $10.00, total bayar $90.00) dan memicu `OrderCreatedEvent`.
 
-### Get Order by ID
-Request:
+Coba dengan user yang tidak terdaftar (userId 999):
 ```bash
-curl -i "http://localhost:8082/api/v1/orders/1"
-```
-
-### List Orders (Pagination)
-Request:
-```bash
-curl -i "http://localhost:8082/api/v1/orders?page=0&size=10"
-```
-
-### Get Orders by User ID
-Request:
-```bash
-curl -i "http://localhost:8082/api/v1/orders/user/1"
-```
-
-### Update Order Status
-Request:
-```bash
-curl -i -X PUT "http://localhost:8082/api/v1/orders/1/status" \
+curl -X POST http://localhost:8082/api/v1/orders \
   -H "Content-Type: application/json" \
-  -d '{"status":"PAID"}'
+  -d '{
+    "userId": 999,
+    "discountType": "NONE",
+    "items": [{"productName": "USB Cable", "quantity": 1, "price": 10.00}]
+  }'
 ```
+*Hasil:* Respon `400 Bad Request` ("User with id 999 does not exist or is unreachable").
 
-### Delete Order
-Request:
+---
+
+### 2. Test Java Stream API Analytics
 ```bash
-curl -i -X DELETE "http://localhost:8082/api/v1/orders/1"
+curl -X GET http://localhost:8082/api/v1/orders/analytics/summary
 ```
-
-### Report: Order Summary by User (Native SQL)
-Request:
-```bash
-curl -i "http://localhost:8082/api/v1/orders/reports/by-user"
-```
-
-Response (200):
+*Contoh Respon:*
 ```json
 {
   "success": true,
-  "message": "Order summary by user",
-  "data": [
-    {"userId": 1, "orderCount": 2, "totalAmount": 199.98}
-  ],
-  "timestamp": "2026-02-22T15:00:00Z"
+  "message": "Order analytics summary (Java Stream API: groupingBy, partitioningBy, summarize, reduce)",
+  "data": {
+    "totalOrdersCount": 4,
+    "totalRevenue": 700.00,
+    "ordersCountByStatus": {
+      "NEW": 1,
+      "PAID": 2,
+      "COMPLETED": 1
+    },
+    "revenueByStatus": {
+      "NEW": 95.00,
+      "PAID": 335.00,
+      "COMPLETED": 320.00
+    },
+    "partitionedByValue": {
+      "HIGH_VALUE": 4,
+      "STANDARD": 0
+    },
+    "amountStatistics": {
+      "count": 4,
+      "sum": 750.0,
+      "min": 50.0,
+      "average": 187.5,
+      "max": 320.0
+    },
+    "topSellingProducts": [
+      {"productName": "Desk Mat", "totalQuantity": 3},
+      {"productName": "Wireless Mouse", "totalQuantity": 3},
+      {"productName": "Monitor Stand", "totalQuantity": 2}
+    ]
+  }
 }
 ```
 
-## Contoh Error
-### Duplicate Email (400)
-Request:
+---
+
+### 3. Test Intermediate Native SQL Queries
+
+#### A. CTE + DENSE_RANK Window Function (Customer Spending Ranking)
 ```bash
-curl -i -X POST "http://localhost:8081/api/v1/users" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Dup","email":"dup@example.com","status":"ACTIVE"}'
-```
-Request kedua dengan email yang sama akan menghasilkan:
-```json
-{
-  "code": "BAD_REQUEST",
-  "message": "Email already registered",
-  "path": "/api/v1/users",
-  "details": null,
-  "timestamp": "2026-02-22T15:00:00Z"
-}
+curl -X GET http://localhost:8082/api/v1/orders/reports/user-rankings
 ```
 
-### Order Items Kosong (400)
-Request:
+#### B. Window Functions ROW_NUMBER & Running Cumulative Sum
 ```bash
-curl -i -X POST "http://localhost:8082/api/v1/orders" \
-  -H "Content-Type: application/json" \
-  -d '{"userId":1,"status":"NEW","items":[]}'
-```
-Response:
-```json
-{
-  "code": "BAD_REQUEST",
-  "message": "Order items are required",
-  "path": "/api/v1/orders",
-  "details": null,
-  "timestamp": "2026-02-22T15:00:00Z"
-}
+curl -X GET http://localhost:8082/api/v1/orders/reports/cumulative-spent
 ```
 
-### Not Found (404)
-Request:
+#### C. Multi-table JOIN dengan Aggregations & HAVING
 ```bash
-curl -i "http://localhost:8081/api/v1/users/99999"
-```
-Response:
-```json
-{
-  "code": "NOT_FOUND",
-  "message": "User not found",
-  "path": "/api/v1/users/99999",
-  "details": null,
-  "timestamp": "2026-02-22T15:00:00Z"
-}
+curl -X GET "http://localhost:8082/api/v1/orders/reports/product-performance?minQuantity=2"
 ```
 
-## OpenAPI
-Spesifikasi tersedia di `docs/api/`.
+---
+
+## 🛠️ Build & Unit Test Lokal
+
+Jika ingin menjalankan test unit di lingkungan lokal:
+```bash
+./mvnw clean test
+```
+
+Seluruh unit test mencakup:
+- Pengujian Spring IoC Strategy Factory (`DiscountStrategyFactoryTest`)
+- Pengujian Java Stream Analytics (`OrderAnalyticsServiceTest`)
+- Pengujian Business Service & Validasi Microservice Client (`OrderServiceTest`, `UserServiceTest`)

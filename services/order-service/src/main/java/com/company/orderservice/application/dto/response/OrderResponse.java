@@ -10,6 +10,8 @@ public class OrderResponse {
     private Long userId;
     private OrderStatus status;
     private BigDecimal totalAmount;
+    private com.company.orderservice.domain.DiscountType discountType;
+    private BigDecimal discountAmount;
     private List<OrderItemResponse> items;
     private Instant createdAt;
     private Instant updatedAt;
@@ -44,6 +46,22 @@ public class OrderResponse {
 
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
+    }
+
+    public com.company.orderservice.domain.DiscountType getDiscountType() {
+        return discountType;
+    }
+
+    public void setDiscountType(com.company.orderservice.domain.DiscountType discountType) {
+        this.discountType = discountType;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
     }
 
     public List<OrderItemResponse> getItems() {

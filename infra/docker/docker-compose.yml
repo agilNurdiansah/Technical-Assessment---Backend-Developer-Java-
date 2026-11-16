@@ -11,11 +11,17 @@ services:
       - "5433:5432"
     volumes:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   user-service:
     build:
       context: ../..
       dockerfile: services/user-service/Dockerfile
+    container_name: tech-user-service
     environment:
       USER_DB_URL: jdbc:postgresql://postgres:5432/userdb
       USER_DB_USER: postgres
@@ -24,18 +30,24 @@ services:
     ports:
       - "8081:8081"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   order-service:
     build:
       context: ../..
       dockerfile: services/order-service/Dockerfile
+    container_name: tech-order-service
     environment:
       ORDER_DB_URL: jdbc:postgresql://postgres:5432/orderdb
       ORDER_DB_USER: postgres
       ORDER_DB_PASSWORD: postgres
       ORDER_SERVICE_PORT: 8082
+      USER_SERVICE_URL: http://user-service:8081
     ports:
       - "8082:8082"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      user-service:
+        condition: service_started

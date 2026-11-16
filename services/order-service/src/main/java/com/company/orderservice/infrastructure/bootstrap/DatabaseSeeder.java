@@ -1,5 +1,6 @@
 package com.company.orderservice.infrastructure.bootstrap;
 
+import com.company.orderservice.domain.DiscountType;
 import com.company.orderservice.domain.Order;
 import com.company.orderservice.domain.OrderItem;
 import com.company.orderservice.domain.OrderStatus;
@@ -23,25 +24,51 @@ public class DatabaseSeeder implements CommandLineRunner {
             return;
         }
 
+        // Order 1: User 1 - NEW
         Order first = new Order();
         first.setUserId(1L);
         first.setStatus(OrderStatus.NEW);
-        List<OrderItem> firstItems = List.of(
-            buildItem("Wireless Mouse", 2, new BigDecimal("19.99")),
-            buildItem("USB-C Cable", 1, new BigDecimal("9.50"))
-        );
-        applyItems(first, firstItems);
+        first.setDiscountType(DiscountType.NONE);
+        first.setDiscountAmount(BigDecimal.ZERO);
+        applyItems(first, List.of(
+            buildItem("Wireless Mouse", 2, new BigDecimal("25.00")),
+            buildItem("USB-C Hub", 1, new BigDecimal("45.00"))
+        ));
 
+        // Order 2: User 1 - PAID
         Order second = new Order();
-        second.setUserId(2L);
+        second.setUserId(1L);
         second.setStatus(OrderStatus.PAID);
-        List<OrderItem> secondItems = List.of(
-            buildItem("Notebook", 3, new BigDecimal("4.25")),
-            buildItem("Pen Set", 1, new BigDecimal("7.80"))
-        );
-        applyItems(second, secondItems);
+        second.setDiscountType(DiscountType.PERCENTAGE_TEN);
+        second.setDiscountAmount(new BigDecimal("30.00"));
+        applyItems(second, List.of(
+            buildItem("Mechanical Keyboard", 1, new BigDecimal("120.00")),
+            buildItem("4K Monitor", 1, new BigDecimal("180.00"))
+        ));
 
-        orderRepository.saveAll(List.of(first, second));
+        // Order 3: User 2 - PAID
+        Order third = new Order();
+        third.setUserId(2L);
+        third.setStatus(OrderStatus.PAID);
+        third.setDiscountType(DiscountType.BULK_PURCHASE);
+        third.setDiscountAmount(new BigDecimal("15.00"));
+        applyItems(third, List.of(
+            buildItem("Desk Mat", 3, new BigDecimal("15.00")),
+            buildItem("Wireless Mouse", 1, new BigDecimal("25.00"))
+        ));
+
+        // Order 4: User 2 - COMPLETED
+        Order fourth = new Order();
+        fourth.setUserId(2L);
+        fourth.setStatus(OrderStatus.COMPLETED);
+        fourth.setDiscountType(DiscountType.NONE);
+        fourth.setDiscountAmount(BigDecimal.ZERO);
+        applyItems(fourth, List.of(
+            buildItem("Ergonomic Chair", 1, new BigDecimal("250.00")),
+            buildItem("Monitor Stand", 2, new BigDecimal("35.00"))
+        ));
+
+        orderRepository.saveAll(List.of(first, second, third, fourth));
     }
 
     private static OrderItem buildItem(String name, int quantity, BigDecimal price) {
@@ -58,6 +85,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             order.addItem(item);
             total = total.add(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
         }
-        order.setTotalAmount(total);
+        BigDecimal discount = order.getDiscountAmount() != null ? order.getDiscountAmount() : BigDecimal.ZERO;
+        order.setTotalAmount(total.subtract(discount).max(BigDecimal.ZERO));
     }
 }
